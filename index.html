@@ -188,75 +188,28 @@ ALTER TABLE does not support addition or deletion of components in the composite
 
 <p>It is similar to Hive command, it is used to invoke a bulk loading into existing HBase tables. A “parallel” option will merge the “incremental loading” phase into the HFile generation phase. Conceivably it will perform better, particularly for non-presplit tables.</p>
 
-<p>Miscellaneous Commands</p>
-
-<p>*SHOW TABLE lists the tables inside Astro. *DESCRIBE tablename gives discription of table.</p>
-
-<p>Data Frame</p>
+<h3>
+<a id="data-frame" class="anchor" href="#data-frame" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Frame</h3>
 
 <p>Data Frame’s functionalities are supported in Astro. An example statement is as follows:</p>
 
-<p>val  hbaseContext =  new HBaseSQLContext(sc)
+<pre><code>val  hbaseContext =  new HBaseSQLContext(sc)
 hbaseContext.read.format(“org.apache.spark.sql.hbase.HBaseSource”).options(
     Map("namespace" -&gt; "", "tableName" -&gt; "people", "hbaseTableName" -&gt; "people_table",
       "colsSeq" -&gt; "name,age,id,address",
       "keyCols" -&gt; "id,integer",
-      "nonKeyCols" -&gt;<br>
+      "nonKeyCols" -&gt;   
         "name,string,cf1,cq_name;age,integer,cf1,cq_age;address,string,cf2,cq_address")).load
-hbaseContext.sql("Select  <code>personal_data:name</code>, <code>personal_data:identification</code> as b, `personal_data</p>
+hbaseContext.sql("Select  `personal_data:name`, `personal_data:identification` as b, `personal_data
+hbaseContext.sql("Select  name,  id, address  from people").collect.foreach(println)
+</code></pre>
 
-<p>hbaseContext.sql("Select  name,  id, address  from people").collect.foreach(println)</p>
+<p>There will be a few potentially subtle difference worth of caution. In particular, the methods of “registerAsTable” will not “register” a HBase-based table but an usual SparkSQL table. On the other hand, “insertInto” and “saveAsTable method will insert data into an existing SQL table on top of a HBase table.</p>
 
-<p>There will be a few potentially subtle difference worth of caution. In particular, the methods of “registerAsTable” will not “register” a HBase-based table but a usual SparkSQL table. On the other hand, “insertInto” and “saveAsTable method will insert data into an existing SQL table on top of a HBase table For detail information about Data Frame</p>
-
-<p>Activate Coprocessor and Custom Filter in HBase</p>
-
-<p>First, add the path of spark-hbase jar to the hbase-env.sh in $HBASE_HOME/conf directory, as follows:</p>
-
-<p>HBASE_CLASSPATH=$HBASE_CLASSPATH:/spark-hbase-root-dir/target/spark-sql-on-hbase-1.0.0.jar
-Then, register the coprocessor service 'CheckDirEndPoint' to hbase-site.xml in the same directory, as follows:</p>
-
-<p>
-    hbase.coprocessor.region.classes
-    org.apache.spark.sql.hbase.CheckDirEndPointImpl
-
-(Warning: Don't register another coprocessor service 'SparkSqlRegionObserver' here !)</p>
-
-<p>Metadata Persistence</p>
+<h3>
+<a id="metadata-persistence" class="anchor" href="#metadata-persistence" aria-hidden="true"><span class="octicon octicon-link"></span></a>Metadata Persistence</h3>
 
 <p>Table meta data is stored in a HBase table named “SPARK_SQL_HBASE_TABLE”, of a single column family named “CF”. Each SQL table uses a single row in the HBase table. And each column will store the name and type encoding of a column of the SQL table.</p>
-
-<p>Running Tests</p>
-
-<p>Testing first requires building Spark HBase. Once Spark HBase is built ...</p>
-
-<p>Run all test suites from Maven:</p>
-
-<p>mvn -Phbase,hadoop-2.4 test
-Run a single test suite from Maven, for example:</p>
-
-<p>mvn -Phbase,hadoop-2.4 test -DwildcardSuites=org.apache.spark.sql.hbase.BasicQueriesSuite
-IDE Setup</p>
-
-<p>We use IntelliJ IDEA for Spark HBase development. You can get the community edition for free and install the JetBrains Scala plugin from Preferences &gt; Plugins.</p>
-
-<p>To import the current Spark HBase project for IntelliJ:</p>
-
-<p>Download IntelliJ and install the Scala plug-in for IntelliJ. You may also need to install Maven plug-in for IntelliJ.
-Go to "File -&gt; Import Project", locate the Spark HBase source directory, and select "Maven Project".
-In the Import Wizard, select "Import Maven projects automatically" and leave other settings at their default.
-Make sure some specific profiles are enabled. Select corresponding Hadoop version, "maven3" and also"hbase" in order to get dependencies.
-Leave other settings at their default and you should be able to start your development.
-When you run the scala test, sometimes you will get out of memory exception. You can increase your VM memory usage by the following setting, for example:
--XX:MaxPermSize=512m -Xmx3072m
-You can also make those setting to be the default by setting to the "Defaults -&gt; ScalaTest".</p>
-
-<p>FAQs</p>
-
-<p>Q:Is there any plan to support multiple scan threads per query per region?
-A:Multi scan threads could boost scan parallelism. The similar effect could be achieved through smaller regions. A possible down side of parallel scan is that it could result random I/O. Nevertheless it could be added readily as required.
-Q:Are there other possible, yet not realized in the current release, optimization techniques on organized data sets like those on HBase?
-A:Yes. Actually there could be a bunch of such opportunities. We will, again, adopt them in a phased approach and would like to hear demands and feedbacks from the users.</p>
 
 <h2>
 <a id="fork-and-contribute" class="anchor" href="#fork-and-contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fork and Contribute</h2>
