@@ -26,128 +26,79 @@
 <img src="http://ravipesala.github.io/astro/images/astro_architecture.png" alt="ASTRO"></p>
 
 <h2>
-<a id="requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+<a id="why-astro" class="anchor" href="#why-astro" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Astro</h2>
 
-<p>This version of 1.0.0 requires Spark 1.4.0,HBase 0.98</p>
+<p>HBase is a very useful big data store but its access mechanism is very primitive and only through client-side APIs, Map/Reduce interfaces and interactive shells. Astro provides SQL layer over Hbase, so it takes your SQL query, compiles it into optimized Spark plan and in turn it does series of HBase scans to result sets.User do not require to write any complex client code to access HBase tables.</p>
 
-<h2>
-<a id="building-spark-hbase" class="anchor" href="#building-spark-hbase" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building Spark HBase</h2>
+<p>For example,to count rows in Hbase table we need to write following code:</p>
 
-<p>Spark HBase is built using <a href="http://maven.apache.org/">Apache Maven</a>.</p>
+<p><code>public class MyAggregationClient {</code>
+    <code>private static final byte[] TABLE_NAME = Bytes.toBytes("CNCC_Demo");</code>
+    <code>private static final byte[] CF = Bytes.toBytes("f1");</code>
+    <code>public static void main(String[] args) throws Throwable {</code>
+        <code>Configuration customConf = new Configuration();</code>
+        <code>customConf.setStrings("hbase.zookeeper.quorum","node0,node1,node2");</code>
+        <code>customConf.setLong("hbase.rpc.timeout", 600000);</code>
+        <code>customConf.setLong("hbase.client.scanner.caching", 1000);</code>
+        <code>Configuration configuration = HBaseConfiguration.create(customConf);</code>
+        <code>AggregationClient aggregationClient = new AggregationClient(configuration);</code>
+        <code>Scan scan = new Scan();        scan.addFamily(CF);</code>
+        <code>long rowCount = aggregationClient.rowCount(TABLE_NAME, null, scan);</code>
+        <code>System.out.println("row count is " + rowCount);    }}</code></p>
 
-<p>I. Clone and build HuaweiBigData/astro</p>
+<p>But if we use Astro,create table schema and just one SQL query:</p>
 
-<pre><code>$ git clone https://github.com/HuaweiBigData/astro
-</code></pre>
-
-<p>II. Go to the root of the source tree</p>
-
-<pre><code>$ cd astro
-</code></pre>
-
-<p>III. Build the project
-Build without testing</p>
-
-<pre><code>$ mvn -DskipTests clean install 
-</code></pre>
-
-<p>Or, build with testing. It will run test suites against a HBase minicluster.</p>
-
-<pre><code>$ mvn clean install
-</code></pre>
-
-<h2>
-<a id="activate-coprocessor-and-custom-filter-in-hbase" class="anchor" href="#activate-coprocessor-and-custom-filter-in-hbase" aria-hidden="true"><span class="octicon octicon-link"></span></a>Activate Coprocessor and Custom Filter in HBase</h2>
-
-<p>First, add the path of spark-hbase jar to the hbase-env.sh in $HBASE_HOME/conf directory, as follows:</p>
-
-<pre><code>HBASE_CLASSPATH=$HBASE_CLASSPATH:/spark-hbase-root-dir/target/spark-sql-on-hbase-1.0.0.jar
-</code></pre>
-
-<p>Then, register the coprocessor service 'CheckDirEndPoint' to hbase-site.xml in the same directory, as follows:</p>
-
-<pre><code>&lt;property&gt;
-    &lt;name&gt;hbase.coprocessor.region.classes&lt;/name&gt;
-    &lt;value&gt;org.apache.spark.sql.hbase.CheckDirEndPointImpl&lt;/value&gt;
-&lt;/property&gt;
-</code></pre>
-
-<p>(Warning: Don't register another coprocessor service 'SparkSqlRegionObserver' here !)</p>
+<p><code>CREATE TABLE CNCC_Demo (</code>
+      <code>index          INTEGER,</code>
+      <code>event_time     STRING,</code>
+      <code>country        STRING,</code>
+      <code>site           STRING,</code>
+      <code>PRIMARY KEY(index))</code>
+      <code>MAPPED BY (CNCC_Demo, COLS=   [event_time=f1.c1,country=f1.c2,site=f2.c1]);</code>
+<code>select  count(*)  from CNCC_Demo;</code></p>
 
 <h2>
-<a id="interactive-scala-shell" class="anchor" href="#interactive-scala-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interactive Scala Shell</h2>
+<a id="quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick Start</h2>
 
-<p>The easiest way to start using Spark HBase is through the Scala shell:</p>
+<p>The easiest way to start using Astro is through the shell:</p>
 
-<pre><code>./bin/hbase-sql
-</code></pre>
+<p>Interactive Scala Shell</p>
 
-<h2>
-<a id="python-shell" class="anchor" href="#python-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Python Shell</h2>
+<p>In this shell Spark context and as well as HBaseSQLContext is already created. All the commands which are issued in this shell should be SQL apart from HELP and EXIT.</p>
+
+<blockquote>
+<p>./bin/hbase-sql
+Welcome to hbaseql CLI
+astro&gt;show tables;
+OK
++---------+-----------+
+|tableName|isTemporary|
++---------------------+
+|Employee |      false|
++---------------------+</p>
+</blockquote>
+
+<p>Time taken : 1.231 seconds
+astro&gt;help;
+Usage: HELP Statement
+      Statement:
+         CREATE | DROP | ALTER | LOAD | SELECT | INSERT | DESCRIBE | SHOW
+Python Shell</p>
 
 <p>First, add the spark-hbase jar to the SPARK_CLASSPATH in the $SPARK_HOME/conf directory, as follows:</p>
 
-<pre><code>SPARK_CLASSPATH=$SPARK_CLASSPATH:/spark-hbase-root-dir/target/spark-sql-on-hbase-1.0.0.jar
-</code></pre>
+<p>SPARK_CLASSPATH=$SPARK_CLASSPATH:/spark-hbase-root-dir/target/spark-sql-on-hbase-1.0.0.jar
+Then go to the Astro installation directory and issue</p>
 
-<p>Then go to the spark-hbase installation directory and issue</p>
+<p>./bin/pyspark-hbase
+A successfull message is as follows:</p>
 
-<pre><code>./bin/pyspark-hbase
-</code></pre>
-
-<p>A successfull message is as follows:</p>
-
-<p>You are using Spark SQL on HBase!!!
-   HBaseSQLContext available as hsqlContext.</p>
+<p>You are using Spark SQL on HBase!!! HBaseSQLContext available as hsqlContext.</p>
 
 <p>To run a python script, the PYTHONPATH environment should be set to the "python" directory of the Spark-HBase installation. For example,</p>
 
-<pre><code>export PYTHONPATH=/root-of-Spark-HBase/python
-</code></pre>
-
-<p>Note that the shell commands are not included in the Zip file of the Spark release. They are for developers' use only for this version of 1.0.0. Instead, users can use "$SPARK_HOME/bin/spark-shell --packages Huawei-Spark/Spark-SQL-on-HBase:1.0.0" for SQL shell or "$SPARK_HOME/bin/pyspark --packages Huawei-Spark/Spark-SQL-on-HBase:1.0.0" for Pythin shell.</p>
-
-<h2>
-<a id="running-tests" class="anchor" href="#running-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running Tests</h2>
-
-<p>Testing first requires <a href="#building-spark-hbase">building Spark HBase</a>. Once Spark HBase is built ...</p>
-
-<p>Run all test suites from Maven:</p>
-
-<pre><code>mvn -Phbase,hadoop-2.4 test
-</code></pre>
-
-<p>Run a single test suite from Maven, for example:</p>
-
-<pre><code>mvn -Phbase,hadoop-2.4 test -DwildcardSuites=org.apache.spark.sql.hbase.BasicQueriesSuite
-</code></pre>
-
-<h2>
-<a id="ide-setup" class="anchor" href="#ide-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>IDE Setup</h2>
-
-<p>We use IntelliJ IDEA for Spark HBase development. You can get the community edition for free and install the JetBrains Scala plugin from Preferences &gt; Plugins.</p>
-
-<p>To import the current Spark HBase project for IntelliJ:</p>
-
-<ol>
-<li>Download IntelliJ and install the Scala plug-in for IntelliJ. You may also need to install Maven plug-in for IntelliJ.</li>
-<li>Go to "File -&gt; Import Project", locate the Spark HBase source directory, and select "Maven Project".</li>
-<li>In the Import Wizard, select "Import Maven projects automatically" and leave other settings at their default. </li>
-<li>Make sure some specific profiles are enabled. Select corresponding Hadoop version, "maven3" and also"hbase" in order to get dependencies.</li>
-<li>Leave other settings at their default and you should be able to start your development.</li>
-<li>When you run the scala test, sometimes you will get out of memory exception. You can increase your VM memory usage by the following setting, for example:</li>
-</ol>
-
-<pre><code>-XX:MaxPermSize=512m -Xmx3072m
-</code></pre>
-
-<p>You can also make those setting to be the default by setting to the "Defaults -&gt; ScalaTest".</p>
-
-<h2>
-<a id="configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
-
-<p>Please refer to the <a href="http://spark.apache.org/docs/latest/configuration.html">Configuration guide</a>
-in the online documentation for an overview on how to configure Spark.</p>
+<p>export PYTHONPATH=/root-of-Spark-HBase/python
+Note that the shell commands are not included in the Zip file of the Spark release. They are for developers' use only for this version of 1.0.0. Instead, users can use "$SPARK_HOME/bin/spark-shell --packages Huawei-Spark/Spark-SQL-on-HBase:1.0.0" for SQL shell or "$SPARK_HOME/bin/pyspark --packages Huawei-Spark/Spark-SQL-on-HBase:1.0.0" for Python shell.</p>
 
 <h2>
 <a id="fork-and-contribute" class="anchor" href="#fork-and-contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fork and Contribute</h2>
