@@ -28,77 +28,88 @@
 <h2>
 <a id="why-astro" class="anchor" href="#why-astro" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Astro</h2>
 
-<p>HBase is a very useful big data store but its access mechanism is very primitive and only through client-side APIs, Map/Reduce interfaces and interactive shells. Astro provides SQL layer over Hbase, so it takes your SQL query, compiles it into optimized Spark plan and in turn it does series of HBase scans to result sets.User do not require to write any complex client code to access HBase tables.</p>
+<p>HBase is a very useful big data store but its access mechanism is very primitive and only through client-side APIs, Map/Reduce interfaces and interactive shells. Astro provides SQL layer over Hbase, so it takes your SQL query, compiles it into optimized Spark plan and in turn it does series of HBase scans to result sets.User do not require to write any complex client code to access HBase tables.
+For example,to count rows in Hbase table we need to write following code:</p>
 
-<p>For example,to count rows in Hbase table we need to write following code:</p>
-
-<p><code>public class MyAggregationClient {</code>
-    <code>private static final byte[] TABLE_NAME = Bytes.toBytes("CNCC_Demo");</code>
-    <code>private static final byte[] CF = Bytes.toBytes("f1");</code>
-    <code>public static void main(String[] args) throws Throwable {</code>
-        <code>Configuration customConf = new Configuration();</code>
-        <code>customConf.setStrings("hbase.zookeeper.quorum","node0,node1,node2");</code>
-        <code>customConf.setLong("hbase.rpc.timeout", 600000);</code>
-        <code>customConf.setLong("hbase.client.scanner.caching", 1000);</code>
-        <code>Configuration configuration = HBaseConfiguration.create(customConf);</code>
-        <code>AggregationClient aggregationClient = new AggregationClient(configuration);</code>
-        <code>Scan scan = new Scan();        scan.addFamily(CF);</code>
-        <code>long rowCount = aggregationClient.rowCount(TABLE_NAME, null, scan);</code>
-        <code>System.out.println("row count is " + rowCount);    }}</code></p>
+<pre><code>public class MyAggregationClient {
+    private static final byte[] TABLE_NAME = Bytes.toBytes("CNCC_Demo");
+    private static final byte[] CF = Bytes.toBytes("f1");
+    public static void main(String[] args) throws Throwable 
+    {
+        Configuration customConf = new Configuration();
+        customConf.setStrings("hbase.zookeeper.quorum","node0,node1,node2");
+        customConf.setLong("hbase.rpc.timeout", 600000);
+        customConf.setLong("hbase.client.scanner.caching", 1000);
+        Configuration configuration = HBaseConfiguration.create(customConf);
+        AggregationClient aggregationClient = new AggregationClient(configuration);
+        Scan scan = new Scan();        
+        scan.addFamily(CF);
+        long rowCount = aggregationClient.rowCount(TABLE_NAME, null, scan);
+        System.out.println("row count is " + rowCount);    
+     }
+}
+</code></pre>
 
 <p>But if we use Astro,create table schema and just one SQL query:</p>
 
-<p><code>CREATE TABLE CNCC_Demo (</code>
-      <code>index          INTEGER,</code>
-      <code>event_time     STRING,</code>
-      <code>country        STRING,</code>
-      <code>site           STRING,</code>
-      <code>PRIMARY KEY(index))</code>
-      <code>MAPPED BY (CNCC_Demo, COLS=   [event_time=f1.c1,country=f1.c2,site=f2.c1]);</code>
-<code>select  count(*)  from CNCC_Demo;</code></p>
+<pre><code>CREATE TABLE CNCC_Demo (
+      index          INTEGER,
+      event_time     STRING,
+      country        STRING,
+      site           STRING,
+      PRIMARY KEY(index))
+      MAPPED BY (CNCC_Demo, COLS=   [event_time=f1.c1,country=f1.c2,site=f2.c1]);
+select  count(*)  from CNCC_Demo;
+</code></pre>
 
 <h2>
 <a id="quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick Start</h2>
 
 <p>The easiest way to start using Astro is through the shell:</p>
 
-<p>Interactive Scala Shell</p>
+<h2>
+<a id="interactive-scala-shell" class="anchor" href="#interactive-scala-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interactive Scala Shell</h2>
 
-<p>In this shell Spark context and as well as HBaseSQLContext is already created. All the commands which are issued in this shell should be SQL apart from HELP and EXIT.</p>
+<p>In this shell Spark context and as well as HBaseSQLContext is already created, launch the Astro shell as per the following method, and in this shell should be SQL apart from HELP and EXIT.</p>
 
-<blockquote>
-<p>./bin/hbase-sql
+<pre><code>&gt;./bin/hbase-sql
 Welcome to hbaseql CLI
+
 astro&gt;show tables;
 OK
 +---------+-----------+
 |tableName|isTemporary|
 +---------------------+
 |Employee |      false|
-+---------------------+</p>
-</blockquote>
++---------------------+
 
-<p>Time taken : 1.231 seconds
+Time taken : 1.231 seconds
 astro&gt;help;
 Usage: HELP Statement
       Statement:
          CREATE | DROP | ALTER | LOAD | SELECT | INSERT | DESCRIBE | SHOW
-Python Shell</p>
+</code></pre>
+
+<h2>
+<a id="python-shell" class="anchor" href="#python-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Python Shell</h2>
 
 <p>First, add the spark-hbase jar to the SPARK_CLASSPATH in the $SPARK_HOME/conf directory, as follows:</p>
 
-<p>SPARK_CLASSPATH=$SPARK_CLASSPATH:/spark-hbase-root-dir/target/spark-sql-on-hbase-1.0.0.jar
-Then go to the Astro installation directory and issue</p>
+<pre><code>SPARK_CLASSPATH=$SPARK_CLASSPATH:/spark-hbase-root-dir/target/spark-sql-on-hbase-1.0.0.jar
+</code></pre>
 
-<p>./bin/pyspark-hbase
-A successfull message is as follows:</p>
+<p>Then go to the Astro installation directory and launch the Astro shell:</p>
 
-<p>You are using Spark SQL on HBase!!! HBaseSQLContext available as hsqlContext.</p>
+<pre><code>./bin/pyspark-hbase
+</code></pre>
+
+<p>A successful message is as follows:
+You are using Spark SQL on HBase! HBaseSQLContext is available as hsqlContext.</p>
 
 <p>To run a python script, the PYTHONPATH environment should be set to the "python" directory of the Spark-HBase installation. For example,</p>
 
-<p>export PYTHONPATH=/root-of-Spark-HBase/python
-Note that the shell commands are not included in the Zip file of the Spark release. They are for developers' use only for this version of 1.0.0. Instead, users can use "$SPARK_HOME/bin/spark-shell --packages Huawei-Spark/Spark-SQL-on-HBase:1.0.0" for SQL shell or "$SPARK_HOME/bin/pyspark --packages Huawei-Spark/Spark-SQL-on-HBase:1.0.0" for Python shell.</p>
+<pre><code>export PYTHONPATH=/root-of-Spark-HBase/python
+</code></pre>
 
 <h2>
 <a id="fork-and-contribute" class="anchor" href="#fork-and-contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fork and Contribute</h2>
